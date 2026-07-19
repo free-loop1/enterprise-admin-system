@@ -4,3 +4,4 @@ out/
 *.class
 target/
 notes/week04-student-manager-v4/data/students.csv
+notes/week03-student-manager-v3/data/students.csv

@@ -1,6 +1,7 @@
 package com.freeloop.student.v3;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class Student extends Person {
     private final String id;
@@ -35,6 +36,11 @@ public class Student extends Person {
         return createdAt;
     }
 
+    public String getCreatedAtText() {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        return createdAt.format(formatter);
+    }
+
     @Override
     public String toString() {
         return "Student{" +
@@ -43,7 +49,7 @@ public class Student extends Person {
                 ", age=" + getAge() +
                 ", gender='" + getGender() + '\'' +
                 ", phone='" + getPhone() + '\'' +
-                ", createdAt='" + getCreatedAt() + '\'' +
+                ", createdAt='" + getCreatedAtText() + '\'' +
                 '}';
     }
 }

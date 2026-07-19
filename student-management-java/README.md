@@ -1,6 +1,6 @@
-# Student Manager v4
+# Student Management Java
 
-第 4 周项目在 v3 的基础上加入 Maven、JUnit、多线程与 JVM 入门实验。
+这是 Java 基础阶段的最终项目，由学生管理系统 v1-v4 演进而来。第 4 周在 v3 的基础上加入 Maven、JUnit、多线程与 JVM 入门实验。
 
 ## 环境与命令
 
@@ -8,7 +8,7 @@
 - Maven：3.9+
 - 测试框架：JUnit Jupiter 6
 
-请在当前 `week04-student-manager-v4` 目录执行：
+请在当前 `student-management-java` 目录执行：
 
 ```powershell
 mvn clean test
@@ -47,3 +47,18 @@ java -cp target/classes com.freeloop.student.v4.StudentManagerApp data/students.
 - `JitCompilationDemo`：只用于观察 JIT，不是正式性能基准；正式基准应使用 JMH。
 
 即使示例捕获了 `OutOfMemoryError` 或 `StackOverflowError`，也不代表生产代码可以依靠捕获这些错误恢复运行。
+
+## AI 代码审查与重构
+
+| 审查发现 | 风险 | 重构结果 |
+| --- | --- | --- |
+| 内存修改后写文件失败 | 内存与磁盘状态不一致 | add、update、delete 保存失败时回滚 |
+| 直接覆盖正式 CSV | 中断时可能留下空文件或半个文件 | 先写同目录临时文件，再原子替换 |
+| 主程序路径依赖仓库根目录 | 从 Maven 模块启动时写错位置 | 默认使用 `data/students.csv`，支持参数覆盖 |
+| 简单逗号分割不支持完整 CSV | 姓名含逗号后下次无法读取 | 保存前拒绝逗号、引号和换行 |
+| 文件重复学号被静默忽略 | 数据损坏不易发现 | 加载时发现重复立即抛出异常 |
+| HashMap 遍历顺序不稳定 | 列表和 CSV 顺序变化 | 使用 LinkedHashMap |
+| App 输出写死到 System.out | 难以验证菜单提示 | 注入 PrintStream 并增加流程测试 |
+| JVM 危险示例混在主源码 | 可能被误当作业务代码 | 独立 jvm 包、注释和 README 警告 |
+
+最终共有 55 个 JUnit 测试方法，覆盖实体校验、三种仓库、文件异常与回滚、统计功能和完整菜单流程。

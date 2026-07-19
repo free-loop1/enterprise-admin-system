@@ -75,7 +75,7 @@ Repository<Student, String> repository = new HashMapStudentRepository();
 - 按学号查询、更新和删除的平均复杂度接近`O(1)`。
 - `HashMap`不保证遍历顺序。
 
-## 代码审查与重构
+## AI 代码审查与重构
 
 | 审查发现 | 风险 | 重构结果 |
 | --- | --- | --- |

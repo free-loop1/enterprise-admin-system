@@ -49,6 +49,19 @@
 - 坑：文件读写异常不能只打印错误。
   解决：封装成 `StudentPersistenceException` 抛给上层，由入口统一提示。
 
+## AI 代码审查与重构
+
+| 审查发现 | 风险 | 重构结果 |
+| --- | --- | --- |
+| 直接传播 IOException | App 必须理解底层 IO 细节 | 包装为 StudentPersistenceException 并保留 cause |
+| 读写依赖平台默认编码 | 不同电脑可能出现中文乱码 | 明确使用 StandardCharsets.UTF_8 |
+| CSV 行缺少字段校验 | 损坏数据可能产生下标异常 | 使用 `split(",", -1)` 并检查字段数量 |
+| 统计逻辑放入仓库会混淆职责 | 仓库同时负责访问和计算 | 新建 StudentStatisticsService |
+| 修改学生时可能丢失创建时间 | 更新后 createdAt 被重置 | 更新时沿用 existingStudent.getCreatedAt() |
+| 文件是运行时状态 | 测试数据容易进入 Git | 后续取消 Git 跟踪并加入 `.gitignore` |
+
+v3 仍保留教学版直接覆盖文件的实现。最终 Maven 版根据后续审查进一步加入临时文件替换、失败回滚、重复学号检查和 CSV 字符限制。
+
 ## 验收清单
 
 - 能编译第 3 周所有 Java 文件。

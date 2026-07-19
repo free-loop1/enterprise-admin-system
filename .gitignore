@@ -2,3 +2,5 @@
 out/
 *.iml
 *.class
+target/
+notes/week04-student-manager-v4/data/students.csv

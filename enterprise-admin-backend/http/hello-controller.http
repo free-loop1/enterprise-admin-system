@@ -1,0 +1,15 @@
+@baseUrl = http://localhost:8080/api
+
+### 1. GET 基础接口，预期 200
+GET {{baseUrl}}/hello
+
+### 2. GET 查询参数 @RequestParam，预期 200
+GET {{baseUrl}}/greet?name=Codex
+
+### 3. POST JSON 请求体 @RequestBody，预期 200
+POST {{baseUrl}}/greet
+Content-Type: application/json
+
+{
+  "name": "Codex"
+}

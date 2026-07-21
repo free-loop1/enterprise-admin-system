@@ -1,0 +1,23 @@
+@baseUrl = http://localhost:8080/api/users
+
+### 1. GET 用户详情，预期 200
+GET {{baseUrl}}/1001
+
+### 2. PUT 修改用户，预期 200
+PUT {{baseUrl}}/1001
+Content-Type: application/json
+
+{
+  "username": "Alice"
+}
+
+### 3. DELETE 用户，预期 204 且响应体为空
+DELETE {{baseUrl}}/1001
+
+### 4. POST 创建用户，预期 201 和 Location 响应头
+POST {{baseUrl}}
+Content-Type: application/json
+
+{
+  "username": "Alice"
+}

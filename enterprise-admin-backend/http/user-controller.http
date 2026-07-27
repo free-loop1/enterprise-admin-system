@@ -1,9 +1,30 @@
 @baseUrl = http://localhost:8080/api/users
 
-### 1. GET 用户详情，预期 200
-GET {{baseUrl}}/1001
+### 1. GET 已存在用户，预期 200 和 JSON
+GET {{baseUrl}}/1
+Accept: application/json
 
-### 2. PUT 修改用户，预期 200
+> {%
+    client.test("查询用户详情成功", function () {
+        client.assert(response.status === 200, "状态码应为 200");
+        client.assert(response.body.id === 1, "用户 ID 应为 1");
+        client.assert(response.body.username === "alice", "用户名应为 alice");
+        client.assert(response.body.password === undefined, "不应返回 password");
+        client.assert(response.body.deleted === undefined, "不应返回 deleted");
+    });
+%}
+
+### 2. GET 不存在用户，预期 404
+GET {{baseUrl}}/999999
+Accept: application/json
+
+> {%
+    client.test("不存在的用户返回 404", function () {
+        client.assert(response.status === 404, "状态码应为 404");
+    });
+%}
+
+### 3. PUT 修改用户，预期 200
 PUT {{baseUrl}}/1001
 Content-Type: application/json
 
@@ -11,10 +32,10 @@ Content-Type: application/json
   "username": "Alice"
 }
 
-### 3. DELETE 用户，预期 204 且响应体为空
+### 4. DELETE 用户，预期 204 且响应体为空
 DELETE {{baseUrl}}/1001
 
-### 4. POST 创建用户，预期 201 和 Location 响应头
+### 5. POST 创建用户，预期 201 和 Location 响应头
 POST {{baseUrl}}
 Content-Type: application/json
 

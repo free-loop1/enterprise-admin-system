@@ -1,6 +1,7 @@
 package com.freeloop.admin.service.impl;
 
 import com.freeloop.admin.dto.UserCreateRequest;
+import com.freeloop.admin.dto.UserUpdateRequest;
 import com.freeloop.admin.entity.User;
 import com.freeloop.admin.mapper.UserMapper;
 import com.freeloop.admin.service.UserService;
@@ -36,5 +37,21 @@ public class UserServiceImpl implements UserService {
         userMapper.insert(user);
 
         return user.getId();
+    }
+
+    @Override
+    public boolean updateUser(Long id, UserUpdateRequest request) {
+        User existingUser = userMapper.selectById(id);
+        if (existingUser == null) {
+            return false;
+        }
+        User user = new User();
+        user.setId(id);
+        user.setUsername(request.getUsername());
+        user.setNickname(request.getNickname());
+        user.setPhone(request.getPhone());
+        user.setEmail(request.getEmail());
+        user.setStatus(request.getStatus());
+        return userMapper.updateById(user) == 1;
     }
 }

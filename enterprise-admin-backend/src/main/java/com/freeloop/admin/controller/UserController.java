@@ -36,8 +36,16 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    public String updateUser(@PathVariable long id, @RequestBody UserUpdateRequest request) {
-        return "Updated user ID:" + id + ":" + request.getUsername();
+    public ResponseEntity<Void> updateUser(
+            @PathVariable Long id,
+            @RequestBody UserUpdateRequest request) {
+        boolean updated = userService.updateUser(id, request);
+
+        if (!updated) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}")

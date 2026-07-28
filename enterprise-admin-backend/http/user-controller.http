@@ -1,5 +1,5 @@
 @baseUrl = http://localhost:8080/api/users
-
+@updateUserId = 4
 ### 1. GET 已存在用户，预期 200 和 JSON
 GET {{baseUrl}}/1
 Accept: application/json
@@ -24,18 +24,55 @@ Accept: application/json
     });
 %}
 
-### 3. PUT 修改用户，预期 200
-PUT {{baseUrl}}/1001
+### 3. PUT 修改已存在用户，预期 204
+PUT {{baseUrl}}/{{updateUserId}}
 Content-Type: application/json
 
 {
-  "username": "Alice"
+  "nickname": "Updated HTTP User",
+  "phone": "13900139001",
+  "email": "http-updated@example.com",
+  "status": 0
 }
 
-### 4. DELETE 用户，预期 204 且响应体为空
+> {%
+    client.test("修改用户成功", function () {
+        client.assert(response.status === 204, "状态码应为 204");
+    });
+%}
+
+### 4. GET 修改后的用户，预期字段已更新
+GET {{baseUrl}}/{{updateUserId}}
+Accept: application/json
+
+> {%
+    client.test("用户字段已经更新", function () {
+        client.assert(response.status === 200, "状态码应为 200");
+        client.assert(response.body.nickname === "Updated HTTP User", "昵称未更新");
+        client.assert(response.body.phone === "13900139001", "手机号未更新");
+        client.assert(response.body.email === "http-updated@example.com", "邮箱未更新");
+        client.assert(response.body.status === 0, "状态未更新");
+        client.assert(response.body.password === undefined, "不应返回 password");
+    });
+%}
+
+### 5. PUT 修改不存在用户，预期 404
+PUT {{baseUrl}}/999999
+Content-Type: application/json
+
+{
+  "nickname": "Nobody"
+}
+
+> {%
+    client.test("不存在的用户不能更新", function () {
+        client.assert(response.status === 404, "状态码应为 404");
+    });
+%}
+### 6. DELETE 用户，预期 204 且响应体为空
 DELETE {{baseUrl}}/1001
 
-### 5. POST 真实创建用户，预期 201 和 Location
+### 7. POST 真实创建用户，预期 201 和 Location
 POST {{baseUrl}}
 Content-Type: application/json
 
@@ -61,7 +98,7 @@ Content-Type: application/json
     });
 %}
 
-### 6. GET 刚创建的用户，预期 200 且不泄露密码
+### 8. GET 刚创建的用户，预期 200 且不泄露密码
 GET http://localhost:8080{{createdUserLocation}}
 Accept: application/json
 

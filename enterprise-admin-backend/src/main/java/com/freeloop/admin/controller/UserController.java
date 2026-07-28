@@ -46,13 +46,13 @@ public class UserController {
     }
 
     @PostMapping
-    public ResponseEntity<String> createUser(
+    public ResponseEntity<Void> createUser(
             @RequestBody UserCreateRequest request) {
-        long newUserId = 1001L;
+        Long newUserId = userService.createUser(request);
         URI location = URI.create("/api/users/" + newUserId);
         return ResponseEntity
                 .created(location)
-                .body("Created user ID:" + newUserId + ":" + request.getUsername());
+                .build();
     }
 }
 

@@ -35,10 +35,41 @@ Content-Type: application/json
 ### 4. DELETE 用户，预期 204 且响应体为空
 DELETE {{baseUrl}}/1001
 
-### 5. POST 创建用户，预期 201 和 Location 响应头
+### 5. POST 真实创建用户，预期 201 和 Location
 POST {{baseUrl}}
 Content-Type: application/json
 
 {
-  "username": "Alice"
+  "username": "user_{{$uuid}}",
+  "password": "Test@123456",
+  "nickname": "HTTP Test User",
+  "phone": "13900139000",
+  "email": "http-test@example.com"
 }
+
+> {%
+    client.test("创建用户成功", function () {
+        client.assert(response.status === 201, "状态码应为 201");
+
+        const location = response.headers.valueOf("Location");
+        client.assert(
+            location !== null && location.startsWith("/api/users/"),
+            "Location 应指向新用户详情"
+        );
+
+        client.global.set("createdUserLocation", location);
+    });
+%}
+
+### 6. GET 刚创建的用户，预期 200 且不泄露密码
+GET http://localhost:8080{{createdUserLocation}}
+Accept: application/json
+
+> {%
+    client.test("查询刚创建的用户成功", function () {
+        client.assert(response.status === 200, "状态码应为 200");
+        client.assert(response.body.password === undefined, "不应返回 password");
+        client.assert(response.body.deleted === undefined, "不应返回 deleted");
+        client.assert(response.body.status === 1, "未传 status 时应使用数据库默认值 1");
+    });
+%}

@@ -4,6 +4,7 @@ import com.freeloop.admin.dto.UserCreateRequest;
 import com.freeloop.admin.dto.UserUpdateRequest;
 import com.freeloop.admin.entity.User;
 import com.freeloop.admin.service.UserService;
+import com.freeloop.admin.vo.PageResult;
 import com.freeloop.admin.vo.UserDetailVO;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -67,6 +68,18 @@ public class UserController {
         return ResponseEntity
                 .created(location)
                 .build();
+    }
+
+    @GetMapping
+    public ResponseEntity<PageResult<UserDetailVO>> pageUsers(
+            @RequestParam(defaultValue = "1") long page,
+            @RequestParam(defaultValue = "10") long size,
+            @RequestParam(required = false) String username) {
+
+        PageResult<UserDetailVO> result =
+                userService.pageUsers(page, size, username);
+
+        return ResponseEntity.ok(result);
     }
 }
 

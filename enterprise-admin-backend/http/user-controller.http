@@ -137,3 +137,70 @@ Accept: application/json
         client.assert(response.body.status === 1, "未传 status 时应使用数据库默认值 1");
     });
 %}
+
+### 11. GET 默认分页，预期第 1 页、每页 10 条
+GET {{baseUrl}}
+Accept: application/json
+
+> {%
+    client.test("默认分页查询成功", function () {
+        client.assert(response.status === 200, "状态码应为 200");
+        client.assert(Array.isArray(response.body.records), "records 应为数组");
+        client.assert(response.body.page === 1, "默认页码应为 1");
+        client.assert(response.body.size === 10, "默认每页数量应为 10");
+        client.assert(response.body.total >= 0, "total 不应小于 0");
+        client.assert(response.body.pages >= 0, "pages 不应小于 0");
+
+        response.body.records.forEach(function (user) {
+            client.assert(user.password === undefined, "不应返回 password");
+            client.assert(user.deleted === undefined, "不应返回 deleted");
+        });
+    });
+%}
+
+### 12. GET 指定每页 2 条
+GET {{baseUrl}}?page=1&size=2
+Accept: application/json
+
+> {%
+    client.test("指定分页大小成功", function () {
+        client.assert(response.status === 200, "状态码应为 200");
+        client.assert(response.body.page === 1, "当前页应为 1");
+        client.assert(response.body.size === 2, "每页数量应为 2");
+        client.assert(
+            response.body.records.length <= 2,
+            "当前页记录数不应超过 2"
+        );
+    });
+%}
+
+### 13. GET 按用户名模糊搜索
+GET {{baseUrl}}?page=1&size=10&username=alice
+Accept: application/json
+
+> {%
+    client.test("按用户名搜索成功", function () {
+        client.assert(response.status === 200, "状态码应为 200");
+        client.assert(response.body.records.length > 0, "应查到 alice");
+
+        response.body.records.forEach(function (user) {
+            client.assert(
+                user.username.includes("alice"),
+                "返回的用户名应包含 alice"
+            );
+        });
+    });
+%}
+
+### 14. GET 搜索不存在的用户名，预期空分页
+GET {{baseUrl}}?page=1&size=10&username=definitely_not_exists_123456
+Accept: application/json
+
+> {%
+    client.test("不存在的用户名返回空分页", function () {
+        client.assert(response.status === 200, "状态码应为 200");
+        client.assert(response.body.records.length === 0, "records 应为空");
+        client.assert(response.body.total === 0, "total 应为 0");
+        client.assert(response.body.pages === 0, "pages 应为 0");
+    });
+%}

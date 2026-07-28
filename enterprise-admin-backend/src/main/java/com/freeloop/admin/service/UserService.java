@@ -11,4 +11,6 @@ public interface UserService {
     Long createUser(UserCreateRequest request);
 
     boolean updateUser(Long id, UserUpdateRequest request);
+
+    boolean deleteUser(Long id);
 }

@@ -1,5 +1,6 @@
 @baseUrl = http://localhost:8080/api/users
 @updateUserId = 4
+@deleteUserId = 6
 ### 1. GET 已存在用户，预期 200 和 JSON
 GET {{baseUrl}}/1
 Accept: application/json
@@ -69,10 +70,36 @@ Content-Type: application/json
         client.assert(response.status === 404, "状态码应为 404");
     });
 %}
-### 6. DELETE 用户，预期 204 且响应体为空
-DELETE {{baseUrl}}/1001
 
-### 7. POST 真实创建用户，预期 201 和 Location
+### 6. DELETE 首次逻辑删除用户，预期 204
+DELETE {{baseUrl}}/{{deleteUserId}}
+
+> {%
+    client.test("首次逻辑删除成功", function () {
+        client.assert(response.status === 204, "状态码应为 204");
+    });
+%}
+
+### 7. GET 已逻辑删除用户，预期 404
+GET {{baseUrl}}/{{deleteUserId}}
+Accept: application/json
+
+> {%
+    client.test("逻辑删除用户无法查询", function () {
+        client.assert(response.status === 404, "状态码应为 404");
+    });
+%}
+
+### 8. DELETE 重复删除用户，预期 404
+DELETE {{baseUrl}}/{{deleteUserId}}
+
+> {%
+    client.test("重复删除返回 404", function () {
+        client.assert(response.status === 404, "状态码应为 404");
+    });
+%}
+
+### 9. POST 真实创建用户，预期 201 和 Location
 POST {{baseUrl}}
 Content-Type: application/json
 
@@ -98,7 +125,7 @@ Content-Type: application/json
     });
 %}
 
-### 8. GET 刚创建的用户，预期 200 且不泄露密码
+### 10. GET 刚创建的用户，预期 200 且不泄露密码
 GET http://localhost:8080{{createdUserLocation}}
 Accept: application/json
 

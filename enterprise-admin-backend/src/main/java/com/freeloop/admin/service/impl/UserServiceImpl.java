@@ -54,4 +54,9 @@ public class UserServiceImpl implements UserService {
         user.setStatus(request.getStatus());
         return userMapper.updateById(user) == 1;
     }
+
+    @Override
+    public boolean deleteUser(Long id) {
+        return userMapper.deleteById(id) == 1;
+    }
 }

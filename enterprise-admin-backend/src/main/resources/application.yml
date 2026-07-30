@@ -1,5 +1,3 @@
 spring:
   application:
     name: enterprise-admin-backend
-  profiles:
-    active: dev

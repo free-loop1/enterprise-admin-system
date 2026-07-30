@@ -1,8 +1,10 @@
 package com.freeloop.admin.controller;
 
 import com.freeloop.admin.dto.GreetingRequest;
+import io.swagger.v3.oas.annotations.Hidden;
 import org.springframework.web.bind.annotation.*;
 
+@Hidden
 @RestController
 @RequestMapping("/api")
 public class HelloController {

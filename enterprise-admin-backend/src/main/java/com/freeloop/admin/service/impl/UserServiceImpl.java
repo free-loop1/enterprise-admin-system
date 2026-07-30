@@ -2,20 +2,25 @@ package com.freeloop.admin.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.freeloop.admin.common.ResultCode;
 import com.freeloop.admin.dto.UserCreateRequest;
 import com.freeloop.admin.dto.UserUpdateRequest;
 import com.freeloop.admin.entity.User;
+import com.freeloop.admin.exception.BusinessException;
 import com.freeloop.admin.mapper.UserMapper;
 import com.freeloop.admin.service.UserService;
 import com.freeloop.admin.vo.PageResult;
 import com.freeloop.admin.vo.UserDetailVO;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
 
 @Service
+@Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
@@ -27,12 +32,34 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User getById(Long id) {
-        return userMapper.selectById(id);
+    public UserDetailVO getById(Long id) {
+        LambdaQueryWrapper<User> queryWrapper =
+                createUserDetailQueryWrapper()
+                        .eq(User::getId, id);
+
+        User user = userMapper.selectOne(queryWrapper);
+
+        if (user == null) {
+            throw new BusinessException(
+                    ResultCode.USER_NOT_FOUND
+            );
+        }
+
+        return toUserDetailVO(user);
     }
 
     @Override
+    @Transactional
     public Long createUser(UserCreateRequest request) {
+        boolean usernameExists =
+                usernameExists(request.getUsername(), null);
+
+        if (usernameExists) {
+            throw new BusinessException(
+                    ResultCode.USERNAME_ALREADY_EXISTS
+            );
+        }
+
         User user = new User();
         user.setUsername(request.getUsername());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
@@ -41,17 +68,35 @@ public class UserServiceImpl implements UserService {
         user.setEmail(request.getEmail());
         user.setStatus(request.getStatus());
 
-        userMapper.insert(user);
+        int affectedRows;
+
+        try {
+            affectedRows = userMapper.insert(user);
+        } catch (DuplicateKeyException exception) {
+            throw new BusinessException(
+                    ResultCode.USERNAME_ALREADY_EXISTS
+            );
+        }
+
+        if (affectedRows != 1 || user.getId() == null) {
+            throw new IllegalStateException(
+                    "创建用户后未获得有效的数据库主键"
+            );
+        }
 
         return user.getId();
     }
 
     @Override
-    public boolean updateUser(Long id, UserUpdateRequest request) {
-        User existingUser = userMapper.selectById(id);
-        if (existingUser == null) {
-            return false;
+    @Transactional
+    public void updateUser(Long id, UserUpdateRequest request) {
+        if (StringUtils.hasText(request.getUsername())
+                && usernameExists(request.getUsername(), id)) {
+            throw new BusinessException(
+                    ResultCode.USERNAME_ALREADY_EXISTS
+            );
         }
+
         User user = new User();
         user.setId(id);
         user.setUsername(request.getUsername());
@@ -59,19 +104,42 @@ public class UserServiceImpl implements UserService {
         user.setPhone(request.getPhone());
         user.setEmail(request.getEmail());
         user.setStatus(request.getStatus());
-        return userMapper.updateById(user) == 1;
+
+        int affectedRows;
+
+        try {
+            affectedRows = userMapper.updateById(user);
+        } catch (DuplicateKeyException exception) {
+            throw new BusinessException(
+                    ResultCode.USERNAME_ALREADY_EXISTS
+            );
+        }
+
+        if (affectedRows != 1) {
+            throw new BusinessException(
+                    ResultCode.USER_NOT_FOUND
+            );
+        }
     }
 
     @Override
-    public boolean deleteUser(Long id) {
-        return userMapper.deleteById(id) == 1;
+    @Transactional
+    public void deleteUser(Long id) {
+        int affectedRows = userMapper.deleteById(id);
+
+        if (affectedRows != 1) {
+            throw new BusinessException(
+                    ResultCode.USER_NOT_FOUND
+            );
+        }
     }
 
     @Override
     public PageResult<UserDetailVO> pageUsers(long page, long size, String username) {
         Page<User> userPage = new Page<>(page, size);
 
-        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+        LambdaQueryWrapper<User> queryWrapper =
+                createUserDetailQueryWrapper();
         queryWrapper
                 .like(StringUtils.hasText(username), User::getUsername, username)
                 .orderByDesc(User::getId);
@@ -91,6 +159,34 @@ public class UserServiceImpl implements UserService {
         result.setPages(resultPage.getPages());
 
         return result;
+    }
+
+    private boolean usernameExists(
+            String username,
+            Long excludedUserId) {
+
+        LambdaQueryWrapper<User> queryWrapper =
+                new LambdaQueryWrapper<User>()
+                        .eq(User::getUsername, username)
+                        .ne(
+                                excludedUserId != null,
+                                User::getId,
+                                excludedUserId
+                        );
+
+        return userMapper.exists(queryWrapper);
+    }
+
+    private LambdaQueryWrapper<User> createUserDetailQueryWrapper() {
+        return new LambdaQueryWrapper<User>()
+                .select(
+                        User::getId,
+                        User::getUsername,
+                        User::getNickname,
+                        User::getPhone,
+                        User::getEmail,
+                        User::getStatus
+                );
     }
 
     private UserDetailVO toUserDetailVO(User user) {

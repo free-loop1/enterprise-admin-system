@@ -1,31 +1,36 @@
 @baseUrl = http://localhost:8080/api/users
 @updateUserId = 4
-@deleteUserId = 6
-### 1. GET 已存在用户，预期 200 和 JSON
+### 1. 查询存在的用户
 GET {{baseUrl}}/1
 Accept: application/json
 
 > {%
-    client.test("查询用户详情成功", function () {
-        client.assert(response.status === 200, "状态码应为 200");
-        client.assert(response.body.id === 1, "用户 ID 应为 1");
-        client.assert(response.body.username === "alice", "用户名应为 alice");
-        client.assert(response.body.password === undefined, "不应返回 password");
-        client.assert(response.body.deleted === undefined, "不应返回 deleted");
+    client.test("查询用户详情返回统一成功响应", function () {
+        client.assert(response.status === 200);
+        client.assert(response.body.code === 0);
+        client.assert(response.body.message === "操作成功");
+        client.assert(response.body.data.id === 1);
+        client.assert(response.body.data.username === "alice");
     });
 %}
 
-### 2. GET 不存在用户，预期 404
+### 2. GET 不存在用户，预期 40401
 GET {{baseUrl}}/999999
 Accept: application/json
 
 > {%
-    client.test("不存在的用户返回 404", function () {
-        client.assert(response.status === 404, "状态码应为 404");
+    client.test("不存在用户返回统一业务异常", function () {
+        client.assert(response.status === 404, "HTTP 状态码应为 404");
+        client.assert(response.body.code === 40401, "业务码应为 40401");
+        client.assert(
+            response.body.message === "用户不存在",
+            "错误消息不正确"
+        );
+        client.assert(response.body.data === null, "data 应为 null");
     });
 %}
 
-### 3. PUT 修改已存在用户，预期 204
+### 3. PUT 修改已存在用户，预期统一成功响应
 PUT {{baseUrl}}/{{updateUserId}}
 Content-Type: application/json
 
@@ -38,7 +43,10 @@ Content-Type: application/json
 
 > {%
     client.test("修改用户成功", function () {
-        client.assert(response.status === 204, "状态码应为 204");
+        client.assert(response.status === 200, "状态码应为 200");
+        client.assert(response.body.code === 0, "业务码应为 0");
+        client.assert(response.body.message === "操作成功", "成功消息不正确");
+        client.assert(response.body.data === null, "data 应为 null");
     });
 %}
 
@@ -49,15 +57,15 @@ Accept: application/json
 > {%
     client.test("用户字段已经更新", function () {
         client.assert(response.status === 200, "状态码应为 200");
-        client.assert(response.body.nickname === "Updated HTTP User", "昵称未更新");
-        client.assert(response.body.phone === "13900139001", "手机号未更新");
-        client.assert(response.body.email === "http-updated@example.com", "邮箱未更新");
-        client.assert(response.body.status === 0, "状态未更新");
-        client.assert(response.body.password === undefined, "不应返回 password");
+        client.assert(response.body.data.nickname === "Updated HTTP User", "昵称未更新");
+        client.assert(response.body.data.phone === "13900139001", "手机号未更新");
+        client.assert(response.body.data.email === "http-updated@example.com", "邮箱未更新");
+        client.assert(response.body.data.status === 0, "状态未更新");
+        client.assert(response.body.data.password === undefined, "不应返回 password");
     });
 %}
 
-### 5. PUT 修改不存在用户，预期 404
+### 5. PUT 修改不存在用户，预期 40401
 PUT {{baseUrl}}/999999
 Content-Type: application/json
 
@@ -66,17 +74,26 @@ Content-Type: application/json
 }
 
 > {%
-    client.test("不存在的用户不能更新", function () {
-        client.assert(response.status === 404, "状态码应为 404");
+    client.test("更新不存在用户返回统一业务异常", function () {
+        client.assert(response.status === 404, "HTTP 状态码应为 404");
+        client.assert(response.body.code === 40401, "业务码应为 40401");
+        client.assert(
+            response.body.message === "用户不存在",
+            "错误消息不正确"
+        );
+        client.assert(response.body.data === null, "data 应为 null");
     });
 %}
 
-### 6. DELETE 首次逻辑删除用户，预期 204
+### 6. DELETE 首次逻辑删除用户，预期统一成功响应
 DELETE {{baseUrl}}/{{deleteUserId}}
 
 > {%
     client.test("首次逻辑删除成功", function () {
-        client.assert(response.status === 204, "状态码应为 204");
+        client.assert(response.status === 200, "状态码应为 200");
+        client.assert(response.body.code === 0, "业务码应为 0");
+        client.assert(response.body.message === "操作成功", "成功消息不正确");
+        client.assert(response.body.data === null, "data 应为 null");
     });
 %}
 
@@ -90,12 +107,18 @@ Accept: application/json
     });
 %}
 
-### 8. DELETE 重复删除用户，预期 404
+### 8. DELETE 重复删除用户，预期 40401
 DELETE {{baseUrl}}/{{deleteUserId}}
 
 > {%
-    client.test("重复删除返回 404", function () {
-        client.assert(response.status === 404, "状态码应为 404");
+    client.test("重复删除返回统一业务异常", function () {
+        client.assert(response.status === 404, "HTTP 状态码应为 404");
+        client.assert(response.body.code === 40401, "业务码应为 40401");
+        client.assert(
+            response.body.message === "用户不存在",
+            "错误消息不正确"
+        );
+        client.assert(response.body.data === null, "data 应为 null");
     });
 %}
 
@@ -114,14 +137,21 @@ Content-Type: application/json
 > {%
     client.test("创建用户成功", function () {
         client.assert(response.status === 201, "状态码应为 201");
+        client.assert(response.body.code === 0, "业务码应为 0");
+        client.assert(response.body.data > 0, "data 应为新用户 ID");
 
         const location = response.headers.valueOf("Location");
         client.assert(
             location !== null && location.startsWith("/api/users/"),
             "Location 应指向新用户详情"
         );
+        client.assert(
+            location.endsWith("/" + response.body.data),
+            "Location 中的 ID 应与响应 data 一致"
+        );
 
         client.global.set("createdUserLocation", location);
+        client.global.set("deleteUserId", response.body.data);
     });
 %}
 
@@ -132,9 +162,9 @@ Accept: application/json
 > {%
     client.test("查询刚创建的用户成功", function () {
         client.assert(response.status === 200, "状态码应为 200");
-        client.assert(response.body.password === undefined, "不应返回 password");
-        client.assert(response.body.deleted === undefined, "不应返回 deleted");
-        client.assert(response.body.status === 1, "未传 status 时应使用数据库默认值 1");
+        client.assert(response.body.data.password === undefined, "不应返回 password");
+        client.assert(response.body.data.deleted === undefined, "不应返回 deleted");
+        client.assert(response.body.data.status === 1, "未传 status 时应使用数据库默认值 1");
     });
 %}
 
@@ -145,13 +175,14 @@ Accept: application/json
 > {%
     client.test("默认分页查询成功", function () {
         client.assert(response.status === 200, "状态码应为 200");
-        client.assert(Array.isArray(response.body.records), "records 应为数组");
-        client.assert(response.body.page === 1, "默认页码应为 1");
-        client.assert(response.body.size === 10, "默认每页数量应为 10");
-        client.assert(response.body.total >= 0, "total 不应小于 0");
-        client.assert(response.body.pages >= 0, "pages 不应小于 0");
+        client.assert(response.body.code === 0, "业务码应为 0");
+        client.assert(Array.isArray(response.body.data.records), "records 应为数组");
+        client.assert(response.body.data.page === 1, "默认页码应为 1");
+        client.assert(response.body.data.size === 10, "默认每页数量应为 10");
+        client.assert(response.body.data.total >= 0, "total 不应小于 0");
+        client.assert(response.body.data.pages >= 0, "pages 不应小于 0");
 
-        response.body.records.forEach(function (user) {
+        response.body.data.records.forEach(function (user) {
             client.assert(user.password === undefined, "不应返回 password");
             client.assert(user.deleted === undefined, "不应返回 deleted");
         });
@@ -165,10 +196,10 @@ Accept: application/json
 > {%
     client.test("指定分页大小成功", function () {
         client.assert(response.status === 200, "状态码应为 200");
-        client.assert(response.body.page === 1, "当前页应为 1");
-        client.assert(response.body.size === 2, "每页数量应为 2");
+        client.assert(response.body.data.page === 1, "当前页应为 1");
+        client.assert(response.body.data.size === 2, "每页数量应为 2");
         client.assert(
-            response.body.records.length <= 2,
+            response.body.data.records.length <= 2,
             "当前页记录数不应超过 2"
         );
     });
@@ -181,9 +212,9 @@ Accept: application/json
 > {%
     client.test("按用户名搜索成功", function () {
         client.assert(response.status === 200, "状态码应为 200");
-        client.assert(response.body.records.length > 0, "应查到 alice");
+        client.assert(response.body.data.records.length > 0, "应查到 alice");
 
-        response.body.records.forEach(function (user) {
+        response.body.data.records.forEach(function (user) {
             client.assert(
                 user.username.includes("alice"),
                 "返回的用户名应包含 alice"
@@ -199,21 +230,28 @@ Accept: application/json
 > {%
     client.test("不存在的用户名返回空分页", function () {
         client.assert(response.status === 200, "状态码应为 200");
-        client.assert(response.body.records.length === 0, "records 应为空");
-        client.assert(response.body.total === 0, "total 应为 0");
-        client.assert(response.body.pages === 0, "pages 应为 0");
+        client.assert(response.body.data.records.length === 0, "records 应为空");
+        client.assert(response.body.data.total === 0, "total 应为 0");
+        client.assert(response.body.data.pages === 0, "pages 应为 0");
     });
 %}
 
-### 15. POST 空 JSON，预期参数校验失败 400
+### 15. POST 空 JSON，预期统一参数校验响应
 POST {{baseUrl}}
 Content-Type: application/json
 
 {}
 
 > {%
-    client.test("空 JSON 创建用户失败", function () {
-        client.assert(response.status === 400, "状态码应为 400");
+    client.test("空 JSON 返回统一校验错误", function () {
+        client.assert(response.status === 400, "HTTP 状态码应为 400");
+        client.assert(response.body.code === 40001, "业务码应为 40001");
+        client.assert(
+            typeof response.body.message === "string"
+            && response.body.message.length > 0,
+            "应返回具体校验消息"
+        );
+        client.assert(response.body.data === null, "data 应为 null");
     });
 %}
 
@@ -414,7 +452,7 @@ Content-Type: application/json
     });
 %}
 
-### 29. PUT 合法单字段更新，预期 204
+### 29. PUT 合法单字段更新，预期统一成功响应
 PUT {{baseUrl}}/{{updateUserId}}
 Content-Type: application/json
 
@@ -424,7 +462,9 @@ Content-Type: application/json
 
 > {%
     client.test("合法部分更新成功", function () {
-        client.assert(response.status === 204, "状态码应为 204");
+        client.assert(response.status === 200, "状态码应为 200");
+        client.assert(response.body.code === 0, "业务码应为 0");
+        client.assert(response.body.data === null, "data 应为 null");
     });
 %}
 
@@ -436,29 +476,35 @@ Accept: application/json
     client.test("部分更新结果正确", function () {
         client.assert(response.status === 200, "状态码应为 200");
         client.assert(
-            response.body.nickname === "Validated Partial Update",
+            response.body.data.nickname === "Validated Partial Update",
             "昵称应已更新"
         );
         client.assert(
-            response.body.phone === "13900139001",
+            response.body.data.phone === "13900139001",
             "手机号不应被清空或修改"
         );
         client.assert(
-            response.body.email === "http-updated@example.com",
+            response.body.data.email === "http-updated@example.com",
             "邮箱不应被清空或修改"
         );
-        client.assert(response.body.status === 0, "状态不应被修改");
-        client.assert(response.body.password === undefined, "不应返回密码");
+        client.assert(response.body.data.status === 0, "状态不应被修改");
+        client.assert(response.body.data.password === undefined, "不应返回密码");
     });
 %}
 
-### 31. GET 用户 ID 为 0，预期 400
+### 31. GET 用户 ID 为 0，预期统一校验响应
 GET {{baseUrl}}/0
 Accept: application/json
 
 > {%
-    client.test("查询用户 ID 必须大于 0", function () {
-        client.assert(response.status === 400, "状态码应为 400");
+    client.test("查询用户 ID 返回统一校验错误", function () {
+        client.assert(response.status === 400, "HTTP 状态码应为 400");
+        client.assert(response.body.code === 40001, "业务码应为 40001");
+        client.assert(
+            response.body.message === "用户 ID 必须大于 0",
+            "错误消息不正确"
+        );
+        client.assert(response.body.data === null, "data 应为 null");
     });
 %}
 
@@ -485,13 +531,19 @@ DELETE {{baseUrl}}/0
     });
 %}
 
-### 34. GET 页码为 0，预期 400
+### 34. GET 页码为 0，预期统一校验响应
 GET {{baseUrl}}?page=0&size=10
 Accept: application/json
 
 > {%
-    client.test("页码必须大于等于 1", function () {
-        client.assert(response.status === 400, "状态码应为 400");
+    client.test("非法页码返回统一校验错误", function () {
+        client.assert(response.status === 400, "HTTP 状态码应为 400");
+        client.assert(response.body.code === 40001, "业务码应为 40001");
+        client.assert(
+            response.body.message === "页码必须大于等于 1",
+            "错误消息不正确"
+        );
+        client.assert(response.body.data === null, "data 应为 null");
     });
 %}
 
@@ -523,5 +575,163 @@ Accept: application/json
 > {%
     client.test("搜索用户名不能超过 50 个字符", function () {
         client.assert(response.status === 400, "状态码应为 400");
+    });
+%}
+
+### 38. POST JSON 字段类型错误，预期 40002
+POST {{baseUrl}}
+Content-Type: application/json
+
+{
+  "username": "user_{{$random.alphanumeric(20)}}",
+  "password": "Valid@123",
+  "nickname": "Invalid Body User",
+  "status": "enabled"
+}
+
+> {%
+    client.test("JSON 字段类型错误返回统一响应", function () {
+        client.assert(response.status === 400, "HTTP 状态码应为 400");
+        client.assert(response.body.code === 40002, "业务码应为 40002");
+        client.assert(
+            response.body.message === "请求体格式错误",
+            "错误消息不正确"
+        );
+        client.assert(response.body.data === null, "data 应为 null");
+    });
+%}
+
+### 39. GET 用户 ID 类型错误，预期 40003
+GET {{baseUrl}}/abc
+Accept: application/json
+
+> {%
+    client.test("用户 ID 类型错误返回统一响应", function () {
+        client.assert(response.status === 400, "HTTP 状态码应为 400");
+        client.assert(response.body.code === 40003, "业务码应为 40003");
+        client.assert(
+            response.body.message === "参数类型错误",
+            "错误消息不正确"
+        );
+        client.assert(response.body.data === null, "data 应为 null");
+    });
+%}
+
+### 40. GET 页码类型错误，预期 40003
+GET {{baseUrl}}?page=abc&size=10
+Accept: application/json
+
+> {%
+    client.test("页码类型错误返回统一响应", function () {
+        client.assert(response.status === 400, "HTTP状态码应为 400");
+        client.assert(response.body.code === 40003, "业务码应为 40003");
+        client.assert(
+            response.body.message === "参数类型错误",
+            "错误消息不正确"
+        );
+        client.assert(response.body.data === null, "data 应为 null");
+    });
+%}
+
+### 41. POST 创建重复用户名，预期 40901
+POST {{baseUrl}}
+Content-Type: application/json
+
+{
+  "username": "alice",
+  "password": "Valid@123",
+  "nickname": "Duplicate Alice",
+  "phone": "13800138001",
+  "email": "duplicate-alice@example.com",
+  "status": 1
+}
+
+> {%
+    client.test("重复用户名返回统一业务异常", function () {
+        client.assert(response.status === 409, "HTTP 状态码应为 409");
+        client.assert(response.body.code === 40901, "业务码应为 40901");
+        client.assert(
+            response.body.message === "用户名已存在",
+            "错误消息不正确"
+        );
+        client.assert(response.body.data === null, "data 应为 null");
+    });
+%}
+
+### 42. PUT 更新为其他用户的用户名，预期 40901
+PUT {{baseUrl}}/{{updateUserId}}
+Content-Type: application/json
+
+{
+  "username": "alice"
+}
+
+> {%
+    client.test("更新用户名冲突返回统一业务异常", function () {
+        client.assert(response.status === 409, "HTTP 状态码应为 409");
+        client.assert(response.body.code === 40901, "业务码应为 40901");
+        client.assert(
+            response.body.message === "用户名已存在",
+            "错误消息不正确"
+        );
+        client.assert(response.body.data === null, "data 应为 null");
+    });
+%}
+
+### 43. GET 验证冲突更新未生效
+GET {{baseUrl}}/{{updateUserId}}
+Accept: application/json
+
+> {%
+    client.test("用户名冲突后原数据保持不变", function () {
+        client.assert(response.status === 200, "状态码应为 200");
+        client.assert(
+            response.body.data.username !== "alice",
+            "冲突用户名不应写入数据库"
+        );
+        client.assert(
+            response.body.data.nickname === "Validated Partial Update",
+            "其他字段不应被修改"
+        );
+    });
+%}
+
+### 44. 请求不存在的接口，预期 404 和业务码 40400
+GET http://localhost:8080/api/not-exists
+Accept: application/json
+
+> {%
+    client.test("HTTP 状态码为 404", function () {
+        client.assert(response.status === 404);
+    });
+
+    client.test("业务错误码为 40400", function () {
+        client.assert(response.body.code === 40400);
+    });
+%}
+
+### 45. 对用户详情接口使用不支持的 PATCH，预期 40500
+PATCH {{baseUrl}}/1
+Content-Type: application/json
+
+{
+  "nickname": "Should Not Update"
+}
+
+> {%
+    client.test("HTTP 状态码为 405", function () {
+        client.assert(response.status === 405);
+    });
+
+    client.test("业务错误码为 40500", function () {
+        client.assert(response.body.code === 40500);
+    });
+
+    client.test("错误消息正确", function () {
+        client.assert(response.body.message === "请求方法不支持");
+    });
+
+    client.test("data 为 null", function () {
+        client.assert(response.body.data === null);
     });
 %}

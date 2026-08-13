@@ -18,6 +18,7 @@ public class User {
     private String phone;
     private String email;
     private Integer status;
+    private Integer tokenVersion;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -78,6 +79,14 @@ public class User {
 
     public void setStatus(Integer status) {
         this.status = status;
+    }
+
+    public Integer getTokenVersion() {
+        return tokenVersion;
+    }
+
+    public void setTokenVersion(Integer tokenVersion) {
+        this.tokenVersion = tokenVersion;
     }
 
     public LocalDateTime getCreatedAt() {

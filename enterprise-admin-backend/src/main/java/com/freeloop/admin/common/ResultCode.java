@@ -48,6 +48,18 @@ public enum ResultCode {
             "用户名已存在"
     ),
 
+    PHONE_ALREADY_EXISTS(
+            40902,
+            HttpStatus.CONFLICT,
+            "手机号已存在"
+    ),
+
+    EMAIL_ALREADY_EXISTS(
+            40903,
+            HttpStatus.CONFLICT,
+            "邮箱已存在"
+    ),
+
     INTERNAL_SERVER_ERROR(
             50000,
             HttpStatus.INTERNAL_SERVER_ERROR,

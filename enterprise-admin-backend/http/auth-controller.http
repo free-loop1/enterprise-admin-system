@@ -1,0 +1,61 @@
+@baseUrl = http://localhost:8080/api
+
+### 注册成功
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "bob",
+  "password": "Test@123456",
+  "nickname": "Bob",
+  "phone": "13900139005",
+  "email": "bob@example.com"
+}
+
+### 注册失败：手机号已存在
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "phone_duplicate_user",
+  "password": "Test@123456",
+  "nickname": "Phone Duplicate",
+  "phone": "13900139001",
+  "email": "phone-duplicate@example.com"
+}
+
+### 注册失败：用户名已存在
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "bob",
+  "password": "Test@123456",
+  "nickname": "Username Duplicate",
+  "phone": "13900139006",
+  "email": "username-duplicate@example.com"
+}
+
+### 注册失败：邮箱已存在
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "email_duplicate_user",
+  "password": "Test@123456",
+  "nickname": "Email Duplicate",
+  "phone": "13900139007",
+  "email": "bob@example.com"
+}
+
+### 注册失败：参数校验失败
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "1",
+  "password": "123456",
+  "nickname": " ",
+  "phone": "123",
+  "email": "not-an-email"
+}

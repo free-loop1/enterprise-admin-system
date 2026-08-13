@@ -253,7 +253,8 @@ class UserServiceImplTest {
         request.setPhone("13900139001");
         request.setEmail("updated-bob@example.com");
         request.setStatus(0);
-
+        when(userMapper.exists(any()))
+                .thenReturn(false, false);
         when(userMapper.updateById(any(User.class)))
                 .thenReturn(1);
 
@@ -263,7 +264,7 @@ class UserServiceImplTest {
                 ArgumentCaptor.forClass(User.class);
 
         verify(userMapper).updateById(userCaptor.capture());
-        verify(userMapper, never()).exists(any());
+        verify(userMapper, times(2)).exists(any());
 
         User updatedUser = userCaptor.getValue();
 
@@ -394,5 +395,178 @@ class UserServiceImplTest {
         assertTrue(selectedColumns.contains("username"));
         assertFalse(selectedColumns.contains("password"));
         assertFalse(selectedColumns.contains("deleted"));
+    }
+
+    @Test
+    void shouldRejectCreateWhenPhoneAlreadyExists() {
+        UserCreateRequest request = new UserCreateRequest();
+        request.setUsername("bob");
+        request.setPassword("Test@123456");
+        request.setNickname("Bob");
+        request.setPhone("13800138000");
+        request.setEmail("bob@example.com");
+        when(userMapper.exists(any()))
+                .thenReturn(false, true);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> userService.createUser(request)
+        );
+
+        assertEquals(
+                ResultCode.PHONE_ALREADY_EXISTS,
+                exception.getResultCode()
+        );
+        assertEquals(
+                "手机号已存在",
+                exception.getMessage()
+        );
+
+        verify(userMapper, times(2)).exists(any());
+        verify(passwordEncoder, never())
+                .encode(any(CharSequence.class));
+        verify(userMapper, never()).insert(any(User.class));
+    }
+
+    @Test
+    void shouldRejectCreateWhenEmailAlreadyExists() {
+        UserCreateRequest request = new UserCreateRequest();
+        request.setUsername("bob");
+        request.setPassword("Test@123456");
+        request.setNickname("Bob");
+        request.setPhone("13800138000");
+        request.setEmail("bob@example.com");
+        when(userMapper.exists(any()))
+                .thenReturn(false, false, true);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> userService.createUser(request)
+        );
+
+        assertEquals(
+                ResultCode.EMAIL_ALREADY_EXISTS,
+                exception.getResultCode()
+        );
+        assertEquals(
+                "邮箱已存在",
+                exception.getMessage()
+        );
+
+        verify(userMapper, times(3)).exists(any());
+        verify(passwordEncoder, never())
+                .encode(any(CharSequence.class));
+        verify(userMapper, never()).insert(any(User.class));
+    }
+
+    @Test
+    void shouldRejectUpdateWhenPhoneAlreadyExists() {
+        UserUpdateRequest request = new UserUpdateRequest();
+        request.setPhone("13800138000");
+
+        when(userMapper.exists(any()))
+                .thenReturn(true);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> userService.updateUser(1L, request)
+        );
+
+        assertEquals(
+                ResultCode.PHONE_ALREADY_EXISTS,
+                exception.getResultCode()
+        );
+        assertEquals(
+                "手机号已存在",
+                exception.getMessage()
+        );
+
+        verify(userMapper).exists(any());
+        verify(userMapper, never()).updateById(any(User.class));
+    }
+
+    @Test
+    void shouldRejectUpdateWhenEmailAlreadyExists() {
+        UserUpdateRequest request = new UserUpdateRequest();
+        request.setEmail("alice@example.com");
+        when(userMapper.exists(any()))
+                .thenReturn(true);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> userService.updateUser(1L, request)
+        );
+
+        assertEquals(
+                ResultCode.EMAIL_ALREADY_EXISTS,
+                exception.getResultCode()
+        );
+        assertEquals(
+                "邮箱已存在",
+                exception.getMessage()
+        );
+
+        verify(userMapper).exists(any());
+        verify(userMapper, never()).updateById(any(User.class));
+    }
+
+    @Test
+    void shouldConvertPhoneDuplicateKeyExceptionWhenInsertConflicts() {
+        UserCreateRequest request = new UserCreateRequest();
+        request.setUsername("bob");
+        request.setPassword("Test@123456");
+        request.setNickname("Bob");
+        request.setPhone("13800138000");
+        request.setEmail("bob@example.com");
+
+        when(userMapper.exists(any()))
+                .thenReturn(false, false, false);
+        when(passwordEncoder.encode("Test@123456"))
+                .thenReturn("encoded-password");
+        when(userMapper.insert(any(User.class)))
+                .thenThrow(new DuplicateKeyException(
+                        "Duplicate entry '13800138000' "
+                                + "for key 'uk_sys_user_phone'"
+                ));
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> userService.createUser(request)
+        );
+
+        assertEquals(
+                ResultCode.PHONE_ALREADY_EXISTS,
+                exception.getResultCode()
+        );
+        assertEquals("手机号已存在", exception.getMessage());
+    }
+
+    @Test
+    void shouldConvertEmailDuplicateKeyExceptionWhenInsertConflicts() {
+        UserCreateRequest request = new UserCreateRequest();
+        request.setUsername("bob");
+        request.setPassword("Test@123456");
+        request.setNickname("Bob");
+        request.setPhone("13800138000");
+        request.setEmail("bob@example.com");
+
+        when(userMapper.exists(any()))
+                .thenReturn(false, false, false);
+        when(passwordEncoder.encode("Test@123456"))
+                .thenReturn("encoded-password");
+        when(userMapper.insert(any(User.class)))
+                .thenThrow(new DuplicateKeyException(
+                        "Duplicate entry 'bob@example.com' "
+                                + "for key 'uk_sys_user_email'"
+                ));
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> userService.createUser(request)
+        );
+        assertEquals(
+                ResultCode.EMAIL_ALREADY_EXISTS,
+                exception.getResultCode()
+        );
+        assertEquals("邮箱已存在", exception.getMessage());
     }
 }

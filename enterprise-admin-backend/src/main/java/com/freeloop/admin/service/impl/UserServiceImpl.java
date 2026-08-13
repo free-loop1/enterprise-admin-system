@@ -51,14 +51,12 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public Long createUser(UserCreateRequest request) {
-        boolean usernameExists =
-                usernameExists(request.getUsername(), null);
-
-        if (usernameExists) {
-            throw new BusinessException(
-                    ResultCode.USERNAME_ALREADY_EXISTS
-            );
-        }
+        validateUniqueFields(
+                request.getUsername(),
+                request.getPhone(),
+                request.getEmail(),
+                null
+        );
 
         User user = new User();
         user.setUsername(request.getUsername());
@@ -73,9 +71,7 @@ public class UserServiceImpl implements UserService {
         try {
             affectedRows = userMapper.insert(user);
         } catch (DuplicateKeyException exception) {
-            throw new BusinessException(
-                    ResultCode.USERNAME_ALREADY_EXISTS
-            );
+            throw convertDuplicateKeyException(exception);
         }
 
         if (affectedRows != 1 || user.getId() == null) {
@@ -90,12 +86,12 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void updateUser(Long id, UserUpdateRequest request) {
-        if (StringUtils.hasText(request.getUsername())
-                && usernameExists(request.getUsername(), id)) {
-            throw new BusinessException(
-                    ResultCode.USERNAME_ALREADY_EXISTS
-            );
-        }
+        validateUniqueFields(
+                request.getUsername(),
+                request.getPhone(),
+                request.getEmail(),
+                id
+        );
 
         User user = new User();
         user.setId(id);
@@ -110,9 +106,7 @@ public class UserServiceImpl implements UserService {
         try {
             affectedRows = userMapper.updateById(user);
         } catch (DuplicateKeyException exception) {
-            throw new BusinessException(
-                    ResultCode.USERNAME_ALREADY_EXISTS
-            );
+            throw convertDuplicateKeyException(exception);
         }
 
         if (affectedRows != 1) {
@@ -161,6 +155,78 @@ public class UserServiceImpl implements UserService {
         return result;
     }
 
+    private BusinessException convertDuplicateKeyException(
+            DuplicateKeyException exception) {
+
+        if (containsConstraintName(
+                exception,
+                "uk_sys_user_phone")) {
+            return new BusinessException(
+                    ResultCode.PHONE_ALREADY_EXISTS
+            );
+        }
+
+        if (containsConstraintName(
+                exception,
+                "uk_sys_user_email")) {
+            return new BusinessException(
+                    ResultCode.EMAIL_ALREADY_EXISTS
+            );
+        }
+
+        return new BusinessException(
+                ResultCode.USERNAME_ALREADY_EXISTS
+        );
+    }
+
+    private boolean containsConstraintName(
+            Throwable throwable,
+            String constraintName) {
+
+        Throwable current = throwable;
+
+        while (current != null) {
+            String message = current.getMessage();
+
+            if (message != null
+                    && message.contains(constraintName)) {
+                return true;
+            }
+
+            current = current.getCause();
+        }
+
+        return false;
+    }
+
+    private void validateUniqueFields(
+            String username,
+            String phone,
+            String email,
+            Long excludedUserId) {
+
+        if (StringUtils.hasText(username)
+                && usernameExists(username, excludedUserId)) {
+            throw new BusinessException(
+                    ResultCode.USERNAME_ALREADY_EXISTS
+            );
+        }
+
+        if (StringUtils.hasText(phone)
+                && phoneExists(phone, excludedUserId)) {
+            throw new BusinessException(
+                    ResultCode.PHONE_ALREADY_EXISTS
+            );
+        }
+
+        if (StringUtils.hasText(email)
+                && emailExists(email, excludedUserId)) {
+            throw new BusinessException(
+                    ResultCode.EMAIL_ALREADY_EXISTS
+            );
+        }
+    }
+
     private boolean usernameExists(
             String username,
             Long excludedUserId) {
@@ -168,6 +234,37 @@ public class UserServiceImpl implements UserService {
         LambdaQueryWrapper<User> queryWrapper =
                 new LambdaQueryWrapper<User>()
                         .eq(User::getUsername, username)
+                        .ne(
+                                excludedUserId != null,
+                                User::getId,
+                                excludedUserId
+                        );
+
+        return userMapper.exists(queryWrapper);
+    }
+
+    private boolean phoneExists(
+            String phone,
+            Long excludedUserId) {
+
+        LambdaQueryWrapper<User> queryWrapper =
+                new LambdaQueryWrapper<User>()
+                        .eq(User::getPhone, phone)
+                        .ne(
+                                excludedUserId != null,
+                                User::getId,
+                                excludedUserId
+                        );
+
+        return userMapper.exists(queryWrapper);
+    }
+
+    private boolean emailExists(
+            String email,
+            Long excludedUserId) {
+        LambdaQueryWrapper<User> queryWrapper =
+                new LambdaQueryWrapper<User>()
+                        .eq(User::getEmail, email)
                         .ne(
                                 excludedUserId != null,
                                 User::getId,

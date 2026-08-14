@@ -6,3 +6,6 @@ spring:
     url: "jdbc:mysql://127.0.0.1:3306/enterprise_admin"
     username: "${DB_USERNAME:root}"
     password: "${DB_PASSWORD}"
+
+jwt:
+  secret: "${JWT_SECRET:ZW50ZXJwcmlzZS1hZG1pbi1kZXYtc2VjcmV0LWtleS0yMDI2IQ==}"

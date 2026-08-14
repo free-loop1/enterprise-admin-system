@@ -1,3 +1,6 @@
 spring:
   application:
     name: enterprise-admin-backend
+
+jwt:
+  access-token-expiration-minutes: 30
